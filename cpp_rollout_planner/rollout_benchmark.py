@@ -293,10 +293,6 @@ class RolloutBenchmark:
 
     def _probability_at_launch(self, launch_yaw: float) -> float:
         self._reset_predictor()
-        entries = compress_history_entries([
-            (horizon, acceleration, count)
-            for (horizon, acceleration), count in self._history_source().items()
-        ])
         schedule_omega_limit = self._prediction_schedule.omega_limit
         schedule_alpha_limit = self._prediction_schedule.alpha_limit
         launch_time = self.sim_time + sim.LOW_SPEED_DELAY
@@ -306,11 +302,18 @@ class RolloutBenchmark:
             launch_time,
             launch_yaw,
         )
-        self.model.horizon = sim.LOW_SPEED_DELAY + flight_time
+        horizon = sim.LOW_SPEED_DELAY + flight_time
+        entries = compress_history_entries([
+            (sample_horizon, acceleration, count)
+            for (sample_horizon, acceleration), count in (
+                self._history_source().items()
+            )
+        ])
+        self.model.horizon = horizon
         return self.planner.hit_probability_from_impact(
             impact_state.angle,
             impact_state.omega,
-            self.model.horizon,
+            horizon,
             launch_yaw,
             entries,
             schedule_omega_limit,

@@ -126,6 +126,7 @@ def run_rollout(
     distance: float,
     *,
     zero_acceleration_history: bool,
+    warmup_seconds: float,
 ) -> RunResult:
     schedule = make_schedule(args, distance)
     original_advance = sim.advance_optimized_evasion
@@ -141,6 +142,7 @@ def run_rollout(
                 distance=distance,
                 schedule=schedule,
                 model_version=MODEL_VERSION_RIGOROUS,
+                warmup_seconds=warmup_seconds,
                 zero_acceleration_history=zero_acceleration_history,
             ).run()
     finally:
@@ -158,6 +160,8 @@ def main() -> None:
     parser.add_argument("--omega-limit-deg", type=float, default=700.0)
     parser.add_argument("--alpha-rad", type=float, default=1.0)
     parser.add_argument("--switch-interval", type=float, default=2.0)
+    parser.add_argument("--zero-warmup", type=float, default=0.0)
+    parser.add_argument("--normal-warmup", type=float, default=0.0)
     parser.add_argument(
         "--legacy-pd-gimbal",
         action="store_true",
@@ -182,6 +186,7 @@ def main() -> None:
                     seed,
                     distance,
                     zero_acceleration_history=True,
+                    warmup_seconds=args.zero_warmup,
                 )
             if "normal" in models:
                 values["normal"] = run_rollout(
@@ -189,6 +194,7 @@ def main() -> None:
                     seed,
                     distance,
                     zero_acceleration_history=False,
+                    warmup_seconds=args.normal_warmup,
                 )
             if "current" in models:
                 values["current"] = run_current(args, seed, distance)
