@@ -112,6 +112,7 @@ def run_current(
                 modes=("current",),
                 seed=seed,
                 distance=distance,
+                direct_current_gimbal=not args.legacy_pd_gimbal,
             )
     finally:
         sim.advance_optimized_evasion = original_advance
@@ -157,42 +158,57 @@ def main() -> None:
     parser.add_argument("--omega-limit-deg", type=float, default=700.0)
     parser.add_argument("--alpha-rad", type=float, default=1.0)
     parser.add_argument("--switch-interval", type=float, default=2.0)
+    parser.add_argument(
+        "--legacy-pd-gimbal",
+        action="store_true",
+        help="use the legacy 35/10 PD gimbal simulation instead of direct planner commands",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        choices=("current", "zero", "normal"),
+        default=("current", "zero", "normal"),
+    )
     args = parser.parse_args()
+    models = tuple(dict.fromkeys(args.models))
 
     for seed in args.seeds:
-        rows: dict[
-            float,
-            tuple[RunResult, RunResult, RunResult],
-        ] = {}
+        rows: dict[float, dict[str, RunResult]] = {}
         for distance in args.distances:
-            zero = run_rollout(
-                args,
-                seed,
-                distance,
-                zero_acceleration_history=True,
-            )
-            normal = run_rollout(
-                args,
-                seed,
-                distance,
-                zero_acceleration_history=False,
-            )
-            current = run_current(args, seed, distance)
-            rows[distance] = (zero, normal, current)
+            values: dict[str, RunResult] = {}
+            if "zero" in models:
+                values["zero"] = run_rollout(
+                    args,
+                    seed,
+                    distance,
+                    zero_acceleration_history=True,
+                )
+            if "normal" in models:
+                values["normal"] = run_rollout(
+                    args,
+                    seed,
+                    distance,
+                    zero_acceleration_history=False,
+                )
+            if "current" in models:
+                values["current"] = run_current(args, seed, distance)
+            rows[distance] = values
             print(
                 f"seed={seed} distance={distance:g} "
-                f"zero={zero.valid_per_s:.3f}/{zero.valid_rate:.2f}% "
-                f"normal={normal.valid_per_s:.3f}/{normal.valid_rate:.2f}% "
-                f"current={current.valid_per_s:.3f}/{current.valid_rate:.2f}%"
+                + " ".join(
+                    f"{name}={result.valid_per_s:.3f}/{result.valid_rate:.2f}%"
+                    for name, result in values.items()
+                )
             )
 
         for distance in args.distances:
-            zero, normal, current = rows[distance]
+            values = rows[distance]
             print(
                 f"aggregate seed={seed} distance={distance:g} "
-                f"zero={zero.valid_per_s:.3f}/{zero.valid_rate:.2f}% "
-                f"normal={normal.valid_per_s:.3f}/{normal.valid_rate:.2f}% "
-                f"current={current.valid_per_s:.3f}/{current.valid_rate:.2f}%"
+                + " ".join(
+                    f"{name}={result.valid_per_s:.3f}/{result.valid_rate:.2f}%"
+                    for name, result in values.items()
+                )
             )
 
 

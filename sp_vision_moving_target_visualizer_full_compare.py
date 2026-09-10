@@ -950,12 +950,14 @@ class MovingTargetVisualizer(tk.Tk):
         self,
         mode: str = "current",
         distance: float = 6.0,
+        direct_current_gimbal: bool = True,
     ) -> None:
         super().__init__()
         random.seed(20260903)
         if distance <= 0.0:
             raise ValueError("distance must be positive")
         self.mode = mode
+        self.direct_current_gimbal = direct_current_gimbal
         mode_label = "C++路径枚举版" if mode == "rollout_cpp" else ("当前版：实际云台跟踪" if mode == "current" else ("场域MPC版" if mode == "field_mpc" else ("连续窗口候选版" if mode == "window_candidate" else ("执行感知候选评分版" if mode == "field_candidate" else ("发射前瞻控制版" if mode == "lookahead_control" else "加速度分布预测版")))))
         self.title(f"sp_vision_25 二维自瞄规划可视化 - {mode_label}")
         self.geometry("1180x820")
@@ -1802,6 +1804,20 @@ class MovingTargetVisualizer(tk.Tk):
         """Track the absolute yaw/velocity command with the configured acceleration limit."""
         start_yaw = self.gimbal_yaw
         start_velocity = self.gimbal_yaw_vel
+        if (
+            self.mode == "current"
+            and self.__dict__.get("direct_current_gimbal", True)
+        ):
+            self.gimbal_yaw = wrap_angle(self.current_plan.yaw)
+            self.gimbal_yaw_vel = self.current_plan.yaw_velocity
+            self.gimbal_yaw_acc = self.current_plan.yaw_acceleration
+            self._gimbal_step = (
+                self.sim_time - dt,
+                start_yaw,
+                start_velocity,
+                self.current_plan.yaw_acceleration,
+            )
+            return
         if self.mode == "rollout_cpp":
             command_acc = self._rollout_command_alpha
             next_yaw, next_vel = advance_gimbal_limited(
@@ -2457,6 +2473,7 @@ def benchmark(
     modes: tuple[str, ...] = ("current", "probabilistic", "field_mpc"),
     seed: int = 20260903,
     distance: float = 6.0,
+    direct_current_gimbal: bool = True,
 ) -> None:
     """Run the exact GUI dynamics without Tk so displayed metrics are auditable."""
     if distance <= 0.0:
@@ -2467,6 +2484,7 @@ def benchmark(
             print(f"seed={seed}")
         runner = MovingTargetVisualizer.__new__(MovingTargetVisualizer)
         runner.mode = mode
+        runner.direct_current_gimbal = direct_current_gimbal
         runner.target_distance = type(
             "V",
             (),
