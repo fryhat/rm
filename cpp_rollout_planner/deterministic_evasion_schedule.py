@@ -33,6 +33,8 @@ class DeterministicEvasionSchedule:
     ) -> tuple[float, float, float]:
         limit = self.omega_limit
         alpha = direction * self.alpha_limit
+        if abs(alpha) < 1e-12:
+            return angle + omega * dt, omega, 0.0
         if direction > 0.0 and omega >= limit:
             return angle + omega * dt, omega, 0.0
         if direction < 0.0 and omega <= -limit:

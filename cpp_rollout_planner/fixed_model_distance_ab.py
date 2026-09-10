@@ -54,12 +54,17 @@ def parse_result(text: str, pattern: re.Pattern[str]) -> RunResult:
     )
 
 
-def make_schedule(args: argparse.Namespace) -> DeterministicEvasionSchedule:
+def make_schedule(
+    args: argparse.Namespace,
+    distance: float,
+) -> DeterministicEvasionSchedule:
     return DeterministicEvasionSchedule(
         initial_omega=math.radians(args.initial_omega_deg),
         omega_limit=math.radians(args.omega_limit_deg),
         alpha_limit=args.alpha_rad,
         switch_interval=args.switch_interval,
+        center_x=0.0,
+        center_y=distance,
     )
 
 
@@ -94,7 +99,7 @@ def run_current(
     seed: int,
     distance: float,
 ) -> RunResult:
-    schedule = make_schedule(args)
+    schedule = make_schedule(args, distance)
     original_advance = sim.advance_optimized_evasion
     original_initial_omega = sim.INITIAL_OMEGA
     sim.advance_optimized_evasion = make_advance(schedule)
@@ -121,7 +126,7 @@ def run_rollout(
     *,
     zero_acceleration_history: bool,
 ) -> RunResult:
-    schedule = make_schedule(args)
+    schedule = make_schedule(args, distance)
     original_advance = sim.advance_optimized_evasion
     original_initial_omega = sim.INITIAL_OMEGA
     sim.advance_optimized_evasion = make_advance(schedule)
