@@ -2537,6 +2537,11 @@ def benchmark(
             runner.advance_gimbal(PLANNER_DT)
             runner.fire_if_ready()
             runner.resolve_shots()
+        while runner.shots:
+            runner.sim_time += PLANNER_DT
+            runner.advance_actual(PLANNER_DT)
+            runner.advance_gimbal(PLANNER_DT)
+            runner.resolve_shots()
         resolved = runner.valid_hits + runner.low_speed_hits + runner.misses
         rate = runner.valid_hits / resolved if resolved else 0.0
         print(f"{mode}: shots={resolved}, valid={runner.valid_hits}, low={runner.low_speed_hits}, miss={runner.misses}, valid_rate={rate*100:.2f}%, valid_per_s={runner.valid_hits/seconds:.3f}")

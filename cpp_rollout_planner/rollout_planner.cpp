@@ -53,7 +53,9 @@ static double interpolate(
 ) {
     if (grid_size <= 0) return 0.0;
     if (grid_size == 1) return values[0];
-    if (yaw <= grid[0] || yaw >= grid[grid_size - 1]) return 0.0;
+    if (yaw < grid[0] || yaw > grid[grid_size - 1]) return 0.0;
+    if (yaw == grid[0]) return values[0];
+    if (yaw == grid[grid_size - 1]) return values[grid_size - 1];
     int lo = 0;
     int hi = grid_size - 1;
     while (lo + 1 < hi) {
