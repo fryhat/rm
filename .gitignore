@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+backup_distance_20260909/
+moving_target_diagnostic_*.csv
+cpp_rollout_planner/*.obj
+cpp_rollout_planner/*.lib
+cpp_rollout_planner/*.exp
