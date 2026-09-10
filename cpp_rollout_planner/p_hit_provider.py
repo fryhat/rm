@@ -17,6 +17,15 @@ def compress_history_entries(
     accelerations = [acceleration for _horizon, acceleration, _count in entries]
     raw_lower = min(accelerations)
     raw_upper = max(accelerations)
+    if raw_upper - raw_lower <= 1e-15:
+        histogram: dict[tuple[float, float], int] = {}
+        for horizon, _acceleration, count in entries:
+            key = (round(horizon, 2), raw_lower)
+            histogram[key] = histogram.get(key, 0) + count
+        return [
+            (horizon, acceleration, count)
+            for (horizon, acceleration), count in sorted(histogram.items())
+        ]
     padding = max((raw_upper - raw_lower) * 1e-4, 1e-9)
     lower = raw_lower - padding
     upper = raw_upper + padding
